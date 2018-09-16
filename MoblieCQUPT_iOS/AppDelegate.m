@@ -33,7 +33,7 @@
     [self checkUpTheNotifacation];
     
     [[UMSocialManager defaultManager] openLog:YES];
-    [[UMSocialManager defaultManager] setUmSocialAppkey:@""];
+//    [[UMSocialManager defaultManager] setUmSocialAppkey:@""];
     [self configUSharePlatforms];
     [self confitUShareSettings];
     
@@ -61,6 +61,7 @@
             NSLog(@"request authorization successed!");
         }
     }];
+
 
 
     return YES;
@@ -273,7 +274,6 @@
 
     }
 }
-
 
 
 - (void)applicationWillResignActive:(UIApplication *)application {
