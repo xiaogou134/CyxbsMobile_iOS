@@ -8,12 +8,15 @@
 #import "MineViewController.h"
 #import "LoginViewController.h"
 #import "MineTableViewCell.h"
-#import "XBSAboutViewController.h"
-#import "AboutMeViewController.h"
 #import "MyInfoViewController.h"
-
+#import "AboutMeViewController.h"
+#import "MyMessagesViewController.h"
+#import "QueryViewController.h"
+#import "QueryLoginViewController.h"
+#import "MyInfoModel.h"
+#import <sys/utsname.h>
 @interface MineViewController ()<UITableViewDataSource,UITableViewDelegate>
-@property (strong, nonatomic) NSArray *cellDicArray;
+@property (strong, nonatomic) NSArray <NSArray *> *cellDicArray;
 @property (weak, nonatomic) IBOutlet UIImageView *headImageView;
 @property (weak, nonatomic) IBOutlet UILabel *nameLabel;
 @property (weak, nonatomic) IBOutlet UILabel *introductionLabel;
@@ -26,10 +29,10 @@
 - (void)viewWillAppear:(BOOL)animated{
     [super viewWillAppear:animated];
     self.navigationController.navigationBar.hidden = YES;
-    NSURL *url = [NSURL URLWithString:[UserDefaultTool valueWithKey:@"photo_thumbnail_src"]];
-    [self.headImageView sd_setImageWithURL:url placeholderImage:[UIImage imageNamed:@""]];
-    self.nameLabel.text = [UserDefaultTool valueWithKey:@"nickname"];
-    self.introductionLabel.text = [UserDefaultTool valueWithKey:@"introduction"];
+    MyInfoModel *model = [MyInfoModel getMyInfo];
+    self.headImageView.image = model.photo_thumbnail_src;
+    self.nameLabel.text = model.nickname;
+    self.introductionLabel.text = model.introduction;
 }
 
 - (void)viewWillDisappear:(BOOL)animated{
@@ -40,16 +43,20 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
     self.view.backgroundColor = [UIColor colorWithHexString:@"f6f6f6"];
-    NSArray *array1 =   @[@{@"title":@"没课约",@"img":@"mine_image_date",@"controller":@"QGERestTimeCourseViewController"},
+    NSArray *array1 =   @[@{@"title":@"没课约",@"img":@"mine_image_date",@"controller":@"LZNoCourseViewController"},
                           @{@"title":@"空教室",@"img":@"mine_image_classroom",@"controller":@"EmptyClassViewController"},
-                          @{@"title":@"考试成绩",@"img":@"mine_image_exam",@"controller":@"ExamGradeViewController"},
-                          @{@"title":@"期末安排",@"img":@"mine_image_calendar",@"controller":@"ExamScheduleViewController"},
-                          @{@"title":@"校历",@"img":@"mine_image_remind",@"controller":@"CalendarViewController"}];
+                          @{@"title":@"考试成绩",@"img":@"mine_image_exam",@"controller":@"ExamTotalViewController"},@{@"title":@"志愿时长查询",@"img":@"volunteer_time_icon.png",@"controller":@"QueryLoginViewController"},
+                          @{@"title":@"校历",@"img":@"mine_image_calendar",@"controller":@"CalendarViewController"},
+                          @{@"title":@"课前提醒",@"img":@"mine_image_remind",@"controller":@"BeforeClassViewController"}];
+    
     NSArray *array2 = @[@{@"title":@"设置",@"img":@"mine_image_setting",@"controller":@"SettingViewController"}];
     self.cellDicArray = @[array1,array2];
     self.tableView.delegate = self;
     self.tableView.dataSource = self;
-    self.tableView.bounces = NO;
+    self.tableView.tintColor= [UIColor colorWithHexString:@"f6f6f6"];
+    UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(touchImage)];
+    [self.headImageView addGestureRecognizer:gesture];
+    self.headImageView.userInteractionEnabled = YES;
 }
 
 - (void)viewDidLayoutSubviews{
@@ -60,10 +67,10 @@
     self.headImageView.layer.masksToBounds = YES;
 }
 
-
 - (NSInteger)tableView:(UITableView *)tableView numberOfRowsInSection:(NSInteger)section{
-    return [self.cellDicArray[section] count];
+    return self.cellDicArray[section].count;
 }
+
 - (NSInteger)numberOfSectionsInTableView:(UITableView *)tableView{
     return self.cellDicArray.count;
 }
@@ -71,10 +78,8 @@
 #pragma mark - TableView 代理
 -(UITableViewCell *)tableView:(UITableView *)tableView cellForRowAtIndexPath:(NSIndexPath *)indexPath{
     MineTableViewCell *cell = [[[NSBundle mainBundle]loadNibNamed:@"MineTableViewCell" owner:nil options:nil] lastObject];
-        cell.accessoryType = UITableViewCellAccessoryDisclosureIndicator;
-        cell.cellImageView.image = [UIImage imageNamed:self.cellDicArray[indexPath.section][indexPath.row][@"img"]];
-        cell.cellLabel.text = self.cellDicArray[indexPath.section][indexPath.row][@"title"];
-    
+    cell.cellImageView.image = [UIImage imageNamed:self.cellDicArray[indexPath.section][indexPath.row][@"img"]];
+    cell.cellLabel.text = self.cellDicArray[indexPath.section][indexPath.row][@"title"];
     return cell;
 }
 
@@ -87,16 +92,22 @@
     return (self.tableView.size.height-20)/6;
 }
 
-
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath{
     NSString *className = self.cellDicArray[indexPath.section][indexPath.row][@"controller"];
     UIViewController *vc = (UIViewController *)[[NSClassFromString(className) alloc] init];
     [tableView deselectRowAtIndexPath:indexPath animated:NO];
     if (indexPath.section == 0) {
-        if (indexPath.row == 2 || indexPath.row == 3) {
+        if (indexPath.row == 1 || indexPath.row == 2 ||indexPath.row==5) {
             if (![UserDefaultTool getStuNum]) {
                 [self tint:vc];
                 return;
+            }
+        }
+        if(indexPath.row == 3){
+            if (![[NSUserDefaults standardUserDefaults] valueForKey:@"uid"]) {
+                vc = [[QueryLoginViewController alloc]init];
+            }else{
+                vc = [[QueryViewController alloc]init];
             }
         }
     }
@@ -105,20 +116,34 @@
     vc.navigationItem.title = self.cellDicArray[indexPath.section][indexPath.row][@"title"];
 }
 
+- (void)touchImage{
+    MyInfoViewController *vc = [[MyInfoViewController alloc]init];
+    vc.navigationItem.title = @"修改信息";
+    vc.hidesBottomBarWhenPushed = YES;
+    if (![UserDefaultTool getStuNum]) {
+        [self tint:vc];
+        return;
+    }
+    [self.navigationController pushViewController:vc animated:YES];
+}
+
 - (void)tint:(UIViewController *)controller{
     UIAlertController *alertC = [UIAlertController alertControllerWithTitle:@"是否登录？" message:@"登录后才能查看更多信息" preferredStyle:UIAlertControllerStyleAlert];
-    
     UIAlertAction *cancel = [UIAlertAction actionWithTitle:@"我再看看" style:UIAlertActionStyleCancel handler:nil];
     __weak typeof(self) weakSelf = self;
     UIAlertAction *confirm = [UIAlertAction actionWithTitle:@"马上登录" style:UIAlertActionStyleDefault handler:^(UIAlertAction * _Nonnull action) {
         LoginViewController *LVC = [[LoginViewController alloc] init];
+        LVC.loginSuccessHandler = ^(BOOL success) {
+            if (success) {
+//                [self.navigationController pushViewController:controller animated:YES];
+            }
+        };
         [weakSelf presentViewController:LVC animated:YES completion:nil];
     }];
     [alertC addAction:cancel];
     [alertC addAction:confirm];
     [self presentViewController:alertC animated:YES completion:nil];
 }
-
 
 - (IBAction)clickBtn:(UIButton *)sender {
     UIViewController *vc;
@@ -132,7 +157,7 @@
             vc.navigationItem.title = @"与我相关";
             break;
         case 2:
-            vc = [[XBSAboutViewController alloc]init];
+            vc = [[MyMessagesViewController alloc]init];
             vc.navigationItem.title = @"我的动态";
             break;
     }

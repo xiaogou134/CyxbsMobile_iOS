@@ -40,8 +40,8 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.navigationController.navigationBar.translucent = YES;
-    self.automaticallyAdjustsScrollViewInsets = YES;
+//    self.navigationController.navigationBar.translucent = YES;
+//    self.automaticallyAdjustsScrollViewInsets = YES;
     self.navigationItem.title = @"个人动态";
     [self.view addSubview:self.communityTableView];
     [self setupRefresh];
@@ -56,22 +56,25 @@
 }
 
 - (void)getPersonalInfo{
-    NSString *stuNum = [UserDefaultTool getStuNum];
-    NSString *idNum = [UserDefaultTool getIdNum];
+    NSString *stuNum = [UserDefaultTool getStuNum] ?:@"";
+    NSString *idNum = [UserDefaultTool getIdNum]?:@"";
     if (self.loadType == MessagesViewLoadTypeOther) {
         _stunum_other = self.commentModel.stuNum?:self.model.user_id;
     }
     else{
         _stunum_other = stuNum;
     }
-    [NetWork NetRequestPOSTWithRequestURL:@"http://hongyan.cqupt.edu.cn/cyxbsMobile/index.php/Home/Person/search" WithParameter:@{@"stuNum":stuNum, @"idNum":idNum,@"stunum_other":_stunum_other,@"version":@1.0}
-                     WithReturnValeuBlock:^(id returnValue) {
-                         _myInfoData = returnValue[@"data"];
-                         [self.communityTableView reloadData];
-                         [self loadNet];
-                     } WithFailureBlock:^{
-                         
-                     }];
+    [HttpClient requestWithPath:SEARCH_API method:HttpRequestPost parameters:@{@"stuNum":stuNum, @"idNum":idNum,@"stunum_other":_stunum_other,@"version":@1.0} prepareExecute:^{
+        
+    } progress:^(NSProgress *progress) {
+        
+    } success:^(NSURLSessionDataTask *task, id responseObject) {
+        _myInfoData = responseObject[@"data"];
+        [self.communityTableView reloadData];
+        [self loadNet];
+    } failure:^(NSURLSessionDataTask *task, NSError *error) {
+        
+    }];
 }
 
 - (instancetype)initWithLoadType:(MessagesViewLoadType)loadType withCommunityModel:(MBCommunityModel *)model {
@@ -103,40 +106,51 @@
 }
 
 - (void)loadNet {
-    NSString *stuNum = [UserDefaultTool getStuNum];
+    NSString *stuNum = [UserDefaultTool getStuNum] ?:@"";
     NSDictionary *parameter = @{@"stuNum":stuNum,
                                 @"page":@(_flag),
                                 @"size":@"15",
                                 @"stunum_other":self.stunum_other,
                                 @"version":@1.0};
-    [NetWork NetRequestPOSTWithRequestURL:SEARCHTREBDS_API WithParameter:parameter WithReturnValeuBlock:^(id returnValue) {
-        NSArray *dataArray = returnValue[@"data"];
+    [HttpClient requestWithPath:SEARCHTREBDS_API method:HttpRequestPost parameters:parameter prepareExecute:^{
+        
+    } progress:^(NSProgress *progress) {
+        
+    } success:^(NSURLSessionDataTask *task, id responseObject) {
+        NSArray *dataArray = responseObject[@"data"];
         for (int i = 0; i < dataArray.count; i++) {
             NSMutableDictionary *dic = [NSMutableDictionary dictionaryWithDictionary:dataArray[i]];
             [dic setObject:dic[@"photo_src"] forKey:@"article_photo_src"];
             [dic setObject:dic[@"thumbnail_src"] forKey:@"article_thumbnail_src"];
-            [dic setObject:_myInfoData[@"nickname"] forKey:@"nickname"];
-            [dic setObject:_myInfoData[@"photo_thumbnail_src"] forKey:@"user_thumbnail_src"];
-            [dic setObject:_myInfoData[@"photo_src"] forKey:@"user_photo_src"];
-            [dic setObject:_myInfoData[@"photo_thumbnail_src"] forKey:@"photo_thumbnail_src"];
+            if([UserDefaultTool getStuNum]){
+                [dic setObject:_myInfoData[@"nickname"] forKey:@"nickname"];
+                [dic setObject:_myInfoData[@"photo_thumbnail_src"] forKey:@"user_thumbnail_src"];
+                [dic setObject:_myInfoData[@"photo_src"] forKey:@"user_photo_src"];
+                [dic setObject:_myInfoData[@"photo_thumbnail_src"] forKey:@"photo_thumbnail_src"];
+            }
             MBCommunityModel * communityModel= [[MBCommunityModel alloc] initWithDictionary:dic];
             MBCommunity_ViewModel *viewModel = [[MBCommunity_ViewModel alloc]init];
             viewModel.model = communityModel;
             [self.allDataArray addObject:viewModel];
         }
         [self.communityTableView reloadData];
-        [self.communityTableView.mj_footer endRefreshing];
+        self.communityTableView.mj_footer.hidden = NO;
+        if (dataArray.count < 15) {
+            [self.communityTableView.mj_footer endRefreshingWithNoMoreData];
+        } else {
+            [self.communityTableView.mj_footer endRefreshing];
+        }
         [self.communityTableView.mj_header endRefreshing];
-    } WithFailureBlock:^{
+    } failure:^(NSURLSessionDataTask *task, NSError *error) {
         NSLog(@"请求失败");
         MBProgressHUD *uploadProgress = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
         uploadProgress.mode = MBProgressHUDModeText;
         uploadProgress.labelText = @"网络状况不佳";
         [uploadProgress hide:YES afterDelay:1];
+        self.communityTableView.mj_footer.hidden = NO;
         [self.communityTableView.mj_footer endRefreshing];
         [self.communityTableView.mj_header endRefreshing];
     }];
-
 }
 
 #pragma mark - 分页加载
@@ -145,6 +159,7 @@
 {
     self.communityTableView.mj_header = [MJRefreshNormalHeader headerWithRefreshingTarget:self refreshingAction:@selector(headerRereshing)];
     self.communityTableView.mj_footer = [MJRefreshAutoNormalFooter footerWithRefreshingTarget:self refreshingAction:@selector(footerRereshing)];
+    self.communityTableView.mj_footer.hidden = YES;
 
 }
 
@@ -229,13 +244,23 @@
         }
         return cell;
     }else {
-        MBCommunityCellTableViewCell *cell = [MBCommunityCellTableViewCell cellWithTableView:tableView type:MBCommunityViewCellDetail];
+        MBCommunityCellTableViewCell *cell = [MBCommunityCellTableViewCell cellWithTableView:tableView type:MBCommunityViewCellSimple row:(int)indexPath.row];
         MBCommunity_ViewModel *viewModel = _allDataArray[indexPath.section - 2];
         cell.subViewFrame = viewModel;
         cell.headImageView.userInteractionEnabled = NO;
-        cell.clickSupportBtnBlock = [MBCommunityHandle clickSupportBtn:self];
+//        cell.clickSupportBtnBlock = [MBCommunityHandle clickSupportBtn:self];
+        
+        cell.extendLabel.tag = indexPath.section;
+        UITapGestureRecognizer *tapExtend = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(tapExtend:)];
+        [cell.extendLabel addGestureRecognizer:tapExtend];
         return cell;
     }
+}
+
+- (void) tapExtend:(UIGestureRecognizer *)sender {
+    MBCommunity_ViewModel *view_model = _allDataArray[sender.view.tag - 2];
+    view_model.model.cellIsOpen = !view_model.model.cellIsOpen;
+    [self.communityTableView reloadRow:0 inSection:sender.view.tag withRowAnimation:UITableViewRowAnimationAutomatic];
 }
 
 - (void)tableView:(UITableView *)tableView didSelectRowAtIndexPath:(NSIndexPath *)indexPath {

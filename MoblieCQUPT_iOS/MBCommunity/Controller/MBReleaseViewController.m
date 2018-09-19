@@ -11,7 +11,7 @@
 #import <GMImagePickerController.h>
 #import "MBProgressHUD.h"
 #import "TopicViewController.h"
-
+#import "MOHImageParamModel.h"
 @interface MBReleaseViewController ()<MBAddPhotoContainerViewAddEventDelegate,GMImagePickerControllerDelegate,UITextViewDelegate>
 
 @property (strong, nonatomic) GMImagePickerController *pickView;
@@ -77,7 +77,7 @@
 }
 
 - (void)initBar{
-    self.navigationItem.title = @"逼逼叨叨";
+    self.navigationItem.title = @"哔哔叨叨";
     
     UIButton *doneBtn = [UIButton buttonWithType:UIButtonTypeCustom];
     UIButton *cancelBtn = [UIButton buttonWithType:UIButtonTypeCustom];
@@ -266,7 +266,7 @@
     NSString *title = @"iOS title";
     NSString *stuNum = [UserDefaultTool getStuNum];
     NSString *idNum = [UserDefaultTool getIdNum];
-    NSString *user_id = [UserDefaultTool valueWithKey:@"user_id"];
+//    NSString *user_id = [UserDefaultTool valueWithKey:@"user_id"];
     NSString *content = self.inputView.textView.text;
     NSString *thumbnail_src = @"";
     NSString *photo_src = @"";
@@ -290,7 +290,6 @@
     NSMutableDictionary *parameter = @{@"stuNum":stuNum,
                                        @"idNum":idNum,
                                        @"title":title,
-                                       @"user_id":user_id,
                                        @"content":content,
                                        @"photo_src":photo_src,
                                        @"thumbnail_src":thumbnail_src,
@@ -306,21 +305,23 @@
     }
     _hud.labelText = @"正在发布...";
     __weak typeof(self) weakSelf = self;
-    [NetWork NetRequestPOSTWithRequestURL:API WithParameter:parameter WithReturnValeuBlock:^(id returnValue) {
+    [HttpClient requestWithPath:API method:HttpRequestPost parameters:parameter prepareExecute:^{
+        
+    } progress:^(NSProgress *progress) {
+        
+    } success:^(NSURLSessionDataTask *task, id responseObject) {
         [weakSelf.hud hide:YES];
         weakSelf.hud = [MBProgressHUD showHUDAddedTo:weakSelf.view animated:YES];
         weakSelf.hud.mode = MBProgressHUDModeText;
         weakSelf.hud.labelText = @"发布成功";
         [weakSelf.hud hide:YES afterDelay:1.5];
         [weakSelf performSelector:@selector(delayMethod) withObject:nil afterDelay:0.5f];
-        
-    } WithFailureBlock:^{
+    } failure:^(NSURLSessionDataTask *task, NSError *error) {
         weakSelf.hud = [MBProgressHUD showHUDAddedTo:weakSelf.view animated:YES];
         weakSelf.hud.mode = MBProgressHUDModeText;
         weakSelf.hud.labelText = @"网络错误";
         [weakSelf.hud hide:YES afterDelay:1.5];
     }];
-    
 }
 
 - (void)delayMethod {
@@ -339,8 +340,8 @@
     __block NSInteger flagBlock = flag;
     [NetWork uploadImageWithUrl:UPLOADARTICLE_API imageParams:@[imageModel] otherParams:@{@"stunum":stuNum} imageQualityRate:1.0 successBlock:^(id returnValue) {
         [weakSelf.hud hide:YES];
-        NSRange range = [returnValue[@"data"][@"photosrc"] rangeOfString:@"http://hongyan.cqupt.edu.cn/cyxbsMobile/Public/photo/"];
-        NSRange range1 = [returnValue[@"data"][@"thumbnail_src"] rangeOfString:@"http://hongyan.cqupt.edu.cn/cyxbsMobile/Public/photo/thumbnail/"];
+        NSRange range = [returnValue[@"data"][@"photosrc"] rangeOfString:@"https://wx.idsbllp.cn/cyxbsMobile/Public/photo/"];
+        NSRange range1 = [returnValue[@"data"][@"thumbnail_src"] rangeOfString:@"https://wx.idsbllp.cn/cyxbsMobile/Public/photo/thumbnail/"];
         NSString *photoUrlString = [returnValue[@"data"][@"photosrc"] substringFromIndex:range.length];
         NSString *thumbnailUrlString = [returnValue[@"data"][@"thumbnail_src"] substringFromIndex:range1.length];
         

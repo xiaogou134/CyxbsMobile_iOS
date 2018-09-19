@@ -7,7 +7,6 @@
 //
 
 #import "SuggestionViewController.h"
-#import "ProgressHUD.h"
 #import "ORWInputTextView.h"
 
 @interface SuggestionViewController ()<UITextViewDelegate>
@@ -20,19 +19,18 @@
 
 - (void)viewDidLoad {
     [super viewDidLoad];
-    self.automaticallyAdjustsScrollViewInsets = NO;
     // Do any additional setup after loading the view from its nib.
     self.view.backgroundColor = RGBColor(243, 244, 245, 1);
     
-    _suggestTextView = [[ORWInputTextView alloc] initWithFrame:CGRectMake(-1, 74, MAIN_SCREEN_W+2, 250)];
-    [_suggestTextView setPlaceHolder:@"请描述一下您所遇到的程序错误,非常感谢您对掌上重邮成长的帮助。"];
+    _suggestTextView = [[ORWInputTextView alloc] initWithFrame:CGRectMake(0, HEADERHEIGHT+10, MAIN_SCREEN_W, 250)];
+    _suggestTextView.contentSize = CGSizeMake(0, _suggestTextView.contentSize.height);
+    [_suggestTextView setPlaceHolder:@"请描述一下您所遇到的程序错误,非常感谢您对掌上重邮成长的帮助。您还可以加入掌上重邮反馈群: 570919844进行反馈哦~"];
     _suggestTextView.delegate = self;
-    [_suggestTextView setContentInset:UIEdgeInsetsMake(0, 10, 0, 5)];//设置UITextView的内边距
+    self.automaticallyAdjustsScrollViewInsets = NO;
     [self.view addSubview:_suggestTextView];
     self.navigationItem.rightBarButtonItem = self.send;
     self.navigationItem.title = @"意见反馈";
-    self.send.enabled   = NO;
-    self.send.tintColor = [UIColor whiteColor];
+    self.send.enabled = NO;
 
 }
 
@@ -57,37 +55,25 @@
 
 - (void)textViewDidChange:(UITextView *)textView{
     if (_suggestTextView.text.length <= 0) {
-        [_suggestTextView setPlaceHolder:@"请描述一下您所遇到的程序错误,非常感谢您对掌上重邮成长的帮助。"];
-    }else if(_suggestTextView.text.length>0 && _suggestTextView.text.length<=5){
+        [_suggestTextView setPlaceHolder:@"请描述一下您所遇到的程序错误,非常感谢您对掌上重邮成长的帮助。您还可以加入掌上重邮反馈群: 570919844进行反馈哦~"];
         self.send.enabled   = NO;
-        [_suggestTextView setPlaceHolder:@""];
     }else{
         self.send.enabled   = YES;
-        self.send.tintColor = [UIColor whiteColor];
+        [_suggestTextView setPlaceHolder:@""];
     }
 }
 
 - (BOOL)textView:(UITextView *)textView didChangeTextInRange:(NSRange)range replacementText:(NSString *)text{
-    
     if (_suggestTextView.text.length <= 0) {
-        [_suggestTextView setPlaceHolder:@"请描述一下您所遇到的程序错误,非常感谢您对掌上重邮成长的帮助。"];
-    }else if(_suggestTextView.text.length>0 && _suggestTextView.text.length<=5){
+        [_suggestTextView setPlaceHolder:@"请描述一下您所遇到的程序错误,非常感谢您对掌上重邮成长的帮助。您还可以加入掌上重邮反馈群: 570919844进行反馈哦~"];
         self.send.enabled   = NO;
-        [_suggestTextView setPlaceHolder:@""];
-    }else{
-        self.send.enabled   = YES;
-        self.send.tintColor = [UIColor whiteColor];
     }
-    
-    
-
+    else{
+        self.send.enabled   = YES;
+        [_suggestTextView setPlaceHolder:@""];
+    }
     return YES;
 }
-
-//- (void)textViewDidChange:(UITextView *)textView{
-//    
-//}
-
 
 -(void)sendSuggest{
     NSString *deviceInfo = [NSString stringWithFormat:@"iOS:%@+H:%f+W:%f",[[[NSBundle mainBundle] infoDictionary] objectForKey:@"CFBundleShortVersionString"],MAIN_SCREEN_H,MAIN_SCREEN_W];
@@ -96,15 +82,23 @@
                         @"deviceInfo":deviceInfo,
                         @"content":_suggestTextView.text,
                         };
-    [ProgressHUD show:@"反馈中..."];
-    [NetWork NetRequestPOSTWithRequestURL:@"http://hongyan.cqupt.edu.cn/cyxbs_api_2014/cqupthelp/index.php/admin/shop/registSuggestion" WithParameter:dic WithReturnValeuBlock:^(id returnValue) {
-        [ProgressHUD showSuccess:@"反馈成功"];
-//        NSLog(@"%@",returnValue);
+    MBProgressHUD *hud = [MBProgressHUD showHUDAddedTo:self.view animated:YES];
+    hud.labelText = @"反馈中";
+    [HttpClient requestWithPath:SUGGESTION_API method:HttpRequestPost parameters:dic prepareExecute:^{
+        
+    } progress:^(NSProgress *progress) {
+        
+    } success:^(NSURLSessionDataTask *task, id responseObject) {
+        hud.mode = MBProgressHUDModeText;
+        hud.labelText = @"反馈成功";
+        [hud hide:YES afterDelay:1];
         _suggestTextView.text = @"";
-    } WithFailureBlock:^{
-        [ProgressHUD showError:@"网络故障!"];
+        [_suggestTextView setPlaceHolder:@"请描述一下您所遇到的程序错误,非常感谢您对掌上重邮成长的帮助。您还可以加入掌上重邮反馈群: 570919844进行反馈哦~"];
+    } failure:^(NSURLSessionDataTask *task, NSError *error) {
+        hud.mode = MBProgressHUDModeText;
+        hud.labelText = @"网络故障";
+        [hud hide:YES afterDelay:1];
     }];
-
 }
 
 @end
