@@ -8,7 +8,6 @@
 
 #import "SettingViewController.h"
 #import "SuggestionViewController.h"
-#import "SuggestionViewController.h"
 #import "XBSAboutViewController.h"
 #import "LoginEntry.h"
 #import "LoginViewController.h"
@@ -89,6 +88,7 @@
                 [userDefault setObject:[NSNumber numberWithBool:switchview.on] forKey:@"switchState"];
                 
             }
+            NSLog(@"%d", [[userDefault objectForKey:@"switchState"] boolValue]);
             switchview.on = [[userDefault objectForKey:@"switchState"] boolValue];
             cell.accessoryView = switchview;
         }

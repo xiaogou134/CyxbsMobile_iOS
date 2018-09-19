@@ -100,7 +100,7 @@
         
         UNCalendarNotificationTrigger *calendarTrigger = [UNCalendarNotificationTrigger triggerWithDateMatchingComponents:components repeats:NO];
         
-        NSString *requestIdentifier = [NSString stringWithFormat:@"tomorrowRequestWithIdentifier%@%ld%ld",content.body,components.month,components.day];
+        NSString *requestIdentifier = [NSString stringWithFormat:@"tomorrowRequestWithIdentifier%@%ld%ld",content.body,(long)components.month,(long)components.day];
         
         if (![self.identifierArray containsObject:requestIdentifier]) {
             [self.identifierArray addObject:requestIdentifier];
@@ -109,16 +109,14 @@
         NSMutableArray *noticeArray = [UserDefaultTool valueWithKey:@"lessonNotification"];
         [noticeArray addObjectsFromArray:self.identifierArray];
         [UserDefaultTool saveValue:noticeArray forKey:@"lessonNotification"];
-        
         UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:requestIdentifier content:self.contentArray[i] trigger:calendarTrigger];
         
         
         [[UNUserNotificationCenter currentNotificationCenter] addNotificationRequest:request withCompletionHandler:^(NSError * _Nullable error) {
             NSLog(@"Error:%@",error);
         }];
-        
-        if (([_bigMonthArray containsObject:[NSString stringWithFormat:@"%ld",components.month]]&&components.month==31)
-            || (![_bigMonthArray containsObject:[NSString stringWithFormat:@"%ld",components.month]]&&components.month==30)){
+        if (([_bigMonthArray containsObject:[NSString stringWithFormat:@"%ld",(long)components.month]]&&components.month==31)
+            || (![_bigMonthArray containsObject:[NSString stringWithFormat:@"%ld",(long)components.month]]&&components.month==30)){
             components.day = 0;
         }
         NSLog(@"------%@-------",components);
@@ -141,7 +139,8 @@
         
         if (hashDate.integerValue == 7) {
             hashDate = @"0";
-            nowWeek = [NSString stringWithFormat:@"%ld",nowWeek.integerValue+1];
+            nowWeek = [NSString stringWithFormat:@"%d", nowWeek.intValue+1];
+            
         }
         
         for (int j = 0; j < array.count; j++) {
@@ -152,10 +151,10 @@
                 [dayArray addObject:array[j]];
             }
         }
-        
         self.weekDateArray[i] = [dayArray mutableCopy];
         [dayArray removeAllObjects];
-        hashDate = [NSString stringWithFormat:@"%ld",hashDate.integerValue+1];
+        hashDate = [NSString stringWithFormat:@"%d",hashDate.intValue+1];
+  
     }
 }
 

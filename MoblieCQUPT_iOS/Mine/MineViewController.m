@@ -49,11 +49,11 @@
                           @{@"title":@"校历",@"img":@"mine_image_calendar",@"controller":@"CalendarViewController"},
                           @{@"title":@"课前提醒",@"img":@"mine_image_remind",@"controller":@"BeforeClassViewController"}];
     
-    NSArray *array2 = @[@{@"title":@"设置",@"img":@"mine_image_setting",@"controller":@"SettingController"}];
+    NSArray *array2 = @[@{@"title":@"设置",@"img":@"mine_image_setting",@"controller":@"SettingViewController"}];
     self.cellDicArray = @[array1,array2];
     self.tableView.delegate = self;
     self.tableView.dataSource = self;
-    self.tableView.bounces = NO;
+    self.tableView.tintColor= [UIColor colorWithHexString:@"f6f6f6"];
     UITapGestureRecognizer *gesture = [[UITapGestureRecognizer alloc]initWithTarget:self action:@selector(touchImage)];
     [self.headImageView addGestureRecognizer:gesture];
     self.headImageView.userInteractionEnabled = YES;
