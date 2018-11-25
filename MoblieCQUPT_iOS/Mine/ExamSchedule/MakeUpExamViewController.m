@@ -30,16 +30,20 @@
 - (void)loadData{
     NSUserDefaults *defaults = NSUserDefaults.standardUserDefaults;
     NSString *stuNum = [defaults objectForKey:@"stuNum"];
-    [NetWork NetRequestPOSTWithRequestURL:MAKEAPI WithParameter:@{@"stuNum": stuNum} WithReturnValeuBlock:^(id returnValue) {
-        if (returnValue[@"data"]) {
+    [HttpClient requestWithPath:MAKEAPI method:HttpRequestPost parameters:@{@"stuNum": stuNum} prepareExecute:^{
+        
+    } progress:^(NSProgress *progress) {
+        
+    } success:^(NSURLSessionDataTask *task, id responseObject) {
+        if (responseObject[@"data"]) {
             [self initFailViewWithDetail:@"暂无补考消息~"];
         }
         else{
             [MBProgressHUD hideHUDForView:self.view animated:YES];
-            _data = returnValue[@"data"];
+            _data = responseObject[@"data"];
             [self setUpTableView];
         }
-    } WithFailureBlock:^{
+    } failure:^(NSURLSessionDataTask *task, NSError *error) {
         [self initFailViewWithDetail:@"哎呀！网络开小差了 T^T"];
 
     }];
@@ -112,7 +116,7 @@
     NSString *examDateLabelText = [NSString stringWithFormat:@"%@周 周%@",_data[indexPath.row][@"week"],dateArray[dateIndex]];
     cell.examDate.text = examDateLabelText;
     //日期
-    NSDate *newDate = [[NSDate alloc]getShoolData:_data[indexPath.row][@"week"] andWeekday:_data[indexPath.row][@"weekday"]];
+    NSDate *newDate = [[NSDate alloc]getShoolData:[_data[indexPath.row][@"week"] integerValue] andWeekday:[_data[indexPath.row][@"weekday"] integerValue]];
     NSDateFormatter *formatter = [[NSDateFormatter alloc] init];
     formatter.dateFormat = @"MM-dd";
     NSString *examDate = [formatter stringFromDate:newDate];
